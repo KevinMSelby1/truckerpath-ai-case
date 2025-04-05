@@ -9,8 +9,6 @@ __pycache__/
 venv/
 env/
 
-# Data files (if you have large datasets, you may want to avoid tracking them)
-data/
 
 # OS-generated files (e.g., macOS, Windows)
 .DS_Store
