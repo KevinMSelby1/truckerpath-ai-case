@@ -8,6 +8,7 @@ import nltk
 import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import TfidfVectorizer
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.decomposition import LatentDirichletAllocation
 
 # Ensure necessary NLTK data is downloaded
 nltk.download('stopwords')
@@ -76,13 +77,14 @@ plt.xlabel('Thumbs Up Count')
 plt.title('Top 10 Most Helpful 1-Star Reviews')
 plt.gca().invert_yaxis()  # Highest on top
 plt.tight_layout()
+plt.savefig('/app/data/top_10_most_helpful_reviews.png')
 plt.show()
 
 # Get the top 500 reviews sorted by thumbsUpCount
 top_500_reviews = df.sort_values(by='thumbsUpCount', ascending=False).head(500)
 
 # Export to CSV
-top_500_reviews.to_csv('top_500_1star_reviews.csv', index=False)
+top_500_reviews.to_csv('/app/data/top_500_1star_reviews.csv', index=False)
 
 print("Top 500 1-star reviews with most likes exported successfully!")
 
@@ -144,6 +146,41 @@ plt.xlabel('TF-IDF Score')
 plt.title('Top 10 Most Prominent Features (Words) in 1-Star Reviews')
 plt.gca().invert_yaxis()  # Reverse the order for a better visual
 plt.tight_layout()
+plt.savefig('/app/data/top_10_prominent_features.png')
 plt.show()
+
+# Step 1: Apply LDA topic modeling
+n_topics = 5  # Number of topics you want to extract
+
+lda_model = LatentDirichletAllocation(n_components=n_topics, random_state=42)
+
+# Fit LDA to the TF-IDF features
+lda_model.fit(X_tfidf)
+
+# Step 2: Get top words for each topic
+n_top_words = 5  # Number of top words you want to see for each topic
+
+# Get the feature names (i.e., bigrams/trigrams)
+words = vectorizer.get_feature_names_out()
+
+# Display the top words for each topic
+for topic_idx, topic in enumerate(lda_model.components_):
+    print(f"Topic {topic_idx}:")
+    # Get top n words for the topic (sorted by their weight)
+    print(" ".join([words[i] for i in topic.argsort()[:-n_top_words - 1:-1]]))
+    print()
+
+# Step 3: Assigning topics to each review
+# Get the topic distribution for each review
+topic_distribution = lda_model.transform(X_tfidf)
+
+# Add the topic with the highest probability to the DataFrame
+df['predicted_topic'] = topic_distribution.argmax(axis=1)
+
+# Display the first few reviews with their predicted topics
+print(df[['content', 'predicted_topic']].head())
+
+# Export the reviews with their predicted topics to CSV
+df[['content', 'predicted_topic']].to_csv('/app/data/reviews_with_predicted_topics.csv', index=False)
 
 print("Process Complete!")
